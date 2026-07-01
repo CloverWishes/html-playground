@@ -1,8 +1,8 @@
 const CACHE_NAME = 'html-playground-v2';
 const urlsToCache = [
-    '/',
-    '/index.html',
-    '/manifest.json'
+    '/html-playground/',
+    '/html-playground/index.html',
+    '/html-playground/manifest.json'
 ];
 
 self.addEventListener('install', event => {

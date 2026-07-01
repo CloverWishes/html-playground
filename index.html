@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>HTML 游乐场</title>
-    <link rel="manifest" href="manifest.json">
+    <!-- 明确指定 manifest 的绝对子路径 -->
+    <link rel="manifest" href="/html-playground/manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <style>
@@ -20,9 +21,7 @@
             height: 100vh;
             overflow: hidden;
             padding-top: 44px;
-            /* 为顶部导航栏留出空间 */
         }
-        /* 顶部导航栏 */
         #navbar {
             position: fixed;
             top: 0;
@@ -67,7 +66,6 @@
             cursor: pointer;
             -webkit-tap-highlight-color: transparent;
         }
-        /* 主容器 */
         #app {
             height: 100%;
             overflow: hidden;
@@ -83,7 +81,6 @@
             display: block;
         }
 
-        /* ===== 首页样式 ===== */
         .section-title {
             font-size: 20px;
             font-weight: 700;
@@ -169,7 +166,6 @@
             opacity: 0.7;
         }
 
-        /* 页面列表 */
         .page-item {
             display: flex;
             align-items: center;
@@ -222,7 +218,6 @@
             font-size: 15px;
         }
 
-        /* ===== 详情页样式 ===== */
         #detail-preview-wrap {
             height: 100%;
             display: flex;
@@ -284,7 +279,6 @@
             background: #d1d1d6;
         }
 
-        /* 详情页底部切换按钮（浮动） */
         #detail-toggle-btn {
             position: fixed;
             bottom: 24px;
@@ -314,16 +308,13 @@
     </style>
 </head>
 <body>
-    <!-- 导航栏 -->
     <header id="navbar">
         <button class="back-btn" id="navBack">← 返回</button>
         <span class="title" id="navTitle">HTML 游乐场</span>
         <button class="action-btn" id="navAction" style="visibility:hidden;">编辑</button>
     </header>
 
-    <!-- 主应用 -->
     <div id="app">
-        <!-- ====== 首页 ====== -->
         <div id="view-home" class="view active">
             <div class="section-title">✨ 新建页面</div>
             <div class="card">
@@ -340,7 +331,6 @@
             </div>
         </div>
 
-        <!-- ====== 详情页 ====== -->
         <div id="view-detail" class="view">
             <div id="detail-preview-wrap">
                 <iframe id="detailIframe" sandbox="allow-scripts allow-modals allow-forms allow-same-origin"></iframe>
@@ -398,7 +388,6 @@
                 navTitle.textContent = 'HTML 游乐场';
                 navAction.style.visibility = 'hidden';
                 document.getElementById('detail-toggle-btn').classList.add('hidden');
-                // 释放 iframe 资源
                 const iframe = document.getElementById('detailIframe');
                 if (iframe.src) { URL.revokeObjectURL(iframe.src);
                     iframe.src = ''; }
@@ -408,7 +397,6 @@
                 navAction.style.visibility = 'hidden';
                 document.getElementById('detail-toggle-btn').classList.remove('hidden');
             }
-            // 滚动到顶部
             document.getElementById('view-' + name).scrollTop = 0;
         }
 
@@ -436,7 +424,6 @@
                 container.innerHTML = '<div class="empty-state">还没有页面，创建一个吧 ✨</div>';
                 return;
             }
-            // 按更新时间倒序
             pages.sort((a, b) => b.updatedAt - a.updatedAt);
             let html = '';
             pages.forEach(p => {
@@ -457,7 +444,6 @@
             });
             container.innerHTML = html;
 
-            // 事件绑定
             container.querySelectorAll('.btn-open').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     e.stopPropagation();
@@ -501,7 +487,6 @@
             document.getElementById('newTitle').value = '';
             document.getElementById('newContent').value = '';
             renderHome();
-            // 自动打开新页面
             const last = pages[pages.length - 1];
             openPage(last.id);
         }
@@ -552,10 +537,8 @@
                 return;
             }
 
-            // 更新导航标题
             const navTitle = document.getElementById('navTitle');
             navTitle.textContent = page.title || '未命名';
-            // 隐藏存储标题供导航使用
             let titleStore = document.getElementById('detail-title-store');
             if (!titleStore) {
                 titleStore = document.createElement('span');
@@ -565,9 +548,7 @@
             }
             titleStore.textContent = page.title || '未命名';
 
-            // 渲染 iframe
             const iframe = document.getElementById('detailIframe');
-            // 释放旧 blob
             if (iframe._blobUrl) {
                 URL.revokeObjectURL(iframe._blobUrl);
             }
@@ -580,11 +561,9 @@
                 iframe.srcdoc = '<h1>渲染错误</h1><p>内容格式可能有问题</p>';
             }
 
-            // 填充编辑器
             const editor = document.getElementById('detailEditor');
             editor.value = page.content;
 
-            // 重置编辑模式
             isEditMode = false;
             document.getElementById('detail-preview-wrap').style.display = 'flex';
             document.getElementById('detail-edit-wrap').style.display = 'none';
@@ -600,19 +579,16 @@
             const toggleBtn = document.getElementById('detail-toggle-btn');
 
             if (isEditMode) {
-                // 切换到预览
                 const editor = document.getElementById('detailEditor');
                 const content = editor.value;
                 if (currentPageId) {
                     updatePageContent(currentPageId, content);
-                    // 刷新 iframe
                     const iframe = document.getElementById('detailIframe');
                     if (iframe._blobUrl) URL.revokeObjectURL(iframe._blobUrl);
                     const blob = new Blob([content], { type: 'text/html; charset=utf-8' });
                     const url = URL.createObjectURL(blob);
                     iframe._blobUrl = url;
                     iframe.src = url;
-                    // 更新导航标题（可能变了）
                     const pages = getPages();
                     const p = pages.find(p => p.id === currentPageId);
                     if (p) {
@@ -625,12 +601,10 @@
                 toggleBtn.textContent = '✏️ 编辑代码';
                 isEditMode = false;
             } else {
-                // 切换到编辑
                 previewWrap.style.display = 'none';
                 editWrap.style.display = 'flex';
                 toggleBtn.textContent = '👁️ 预览';
                 isEditMode = true;
-                // 聚焦编辑器
                 setTimeout(() => {
                     document.getElementById('detailEditor').focus();
                 }, 300);
@@ -641,10 +615,8 @@
         // 事件绑定
         // ============================================================
         document.addEventListener('DOMContentLoaded', function() {
-            // 首页 - 保存
             document.getElementById('saveNewBtn').addEventListener('click', saveNewPage);
 
-            // 首页 - 回车快捷保存（标题输入框回车跳到内容，内容框 Ctrl+Enter 保存）
             document.getElementById('newTitle').addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
                     e.preventDefault();
@@ -658,13 +630,10 @@
                 }
             });
 
-            // 导航 - 返回
             document.getElementById('navBack').addEventListener('click', goHome);
 
-            // 详情 - 切换编辑/预览
             document.getElementById('detail-toggle-btn').addEventListener('click', toggleEditMode);
 
-            // 详情 - 取消编辑
             document.getElementById('detailCancelEdit').addEventListener('click', () => {
                 if (currentPageId) {
                     const pages = getPages();
@@ -673,38 +642,31 @@
                         document.getElementById('detailEditor').value = p.content;
                     }
                 }
-                // 切换回预览
                 if (isEditMode) toggleEditMode();
             });
 
-            // 详情 - 保存编辑
             document.getElementById('detailSaveEdit').addEventListener('click', () => {
                 if (currentPageId) {
                     const editor = document.getElementById('detailEditor');
                     const content = editor.value;
                     updatePageContent(currentPageId, content);
-                    // 刷新预览
                     const iframe = document.getElementById('detailIframe');
                     if (iframe._blobUrl) URL.revokeObjectURL(iframe._blobUrl);
                     const blob = new Blob([content], { type: 'text/html; charset=utf-8' });
                     const url = URL.createObjectURL(blob);
                     iframe._blobUrl = url;
                     iframe.src = url;
-                    // 更新标题显示
                     const pages = getPages();
                     const p = pages.find(p => p.id === currentPageId);
                     if (p) {
                         document.getElementById('navTitle').textContent = p.title || '未命名';
                         document.getElementById('detail-title-store').textContent = p.title || '未命名';
                     }
-                    // 切换到预览
                     if (isEditMode) toggleEditMode();
-                    // 刷新首页列表（更新时间和标题）
                     renderHome();
                 }
             });
 
-            // 详情 - 键盘 Ctrl+S 保存
             document.getElementById('detailEditor').addEventListener('keydown', (e) => {
                 if ((e.ctrlKey || e.metaKey) && e.key === 's') {
                     e.preventDefault();
@@ -712,12 +674,11 @@
                 }
             });
 
-            // 初始渲染
             renderHome();
 
-            // 注册 Service Worker (PWA)
+            // 注册 Service Worker - 使用子路径绝对地址
             if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('/sw.js')
+                navigator.serviceWorker.register('/html-playground/sw.js')
                     .then(reg => console.log('SW 注册成功', reg))
                     .catch(err => console.warn('SW 注册失败', err));
             }
