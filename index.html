@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>HTML 游乐场</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f5f5f7;
+            color: #1c1c1e;
+            height: 100vh;
+            overflow: hidden;
+            padding-top: 44px;
+            /* 为顶部导航栏留出空间 */
+        }
+        /* 顶部导航栏 */
+        #navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 44px;
+            background: rgba(245, 245, 247, 0.92);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-bottom: 0.5px solid rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            z-index: 100;
+        }
+        #navbar .back-btn {
+            font-size: 17px;
+            color: #007aff;
+            background: none;
+            border: none;
+            padding: 8px 4px;
+            cursor: pointer;
+            display: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        #navbar .title {
+            font-size: 17px;
+            font-weight: 600;
+            flex: 1;
+            text-align: center;
+            margin: 0 8px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        #navbar .action-btn {
+            font-size: 17px;
+            color: #007aff;
+            background: none;
+            border: none;
+            padding: 8px 4px;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+        /* 主容器 */
+        #app {
+            height: 100%;
+            overflow: hidden;
+        }
+        .view {
+            display: none;
+            height: 100%;
+            overflow-y: auto;
+            padding: 16px 16px 80px;
+            -webkit-overflow-scrolling: touch;
+        }
+        .view.active {
+            display: block;
+        }
+
+        /* ===== 首页样式 ===== */
+        .section-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin: 20px 0 12px;
+            letter-spacing: -0.5px;
+        }
+        .section-title:first-of-type {
+            margin-top: 4px;
+        }
+        .card {
+            background: #ffffff;
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        }
+        .card label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #3a3a3c;
+            margin-bottom: 4px;
+            margin-top: 12px;
+        }
+        .card label:first-of-type {
+            margin-top: 0;
+        }
+        .card input[type="text"],
+        .card textarea {
+            width: 100%;
+            padding: 10px 12px;
+            font-size: 15px;
+            border: 1px solid #d1d1d6;
+            border-radius: 10px;
+            background: #fafafc;
+            outline: none;
+            transition: border-color 0.2s;
+            font-family: inherit;
+            -webkit-appearance: none;
+        }
+        .card input[type="text"]:focus,
+        .card textarea:focus {
+            border-color: #007aff;
+            background: #ffffff;
+        }
+        .card textarea {
+            height: 160px;
+            font-family: "SF Mono", Menlo, Consolas, monospace;
+            font-size: 14px;
+            resize: vertical;
+        }
+        .btn-primary {
+            display: inline-block;
+            width: 100%;
+            padding: 12px;
+            font-size: 17px;
+            font-weight: 600;
+            color: #fff;
+            background: #007aff;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            margin-top: 12px;
+            transition: background 0.15s;
+            -webkit-tap-highlight-color: transparent;
+            text-align: center;
+        }
+        .btn-primary:active {
+            background: #005bbf;
+        }
+        .btn-danger {
+            background: #ff3b30;
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            padding: 6px 14px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .btn-danger:active {
+            opacity: 0.7;
+        }
+
+        /* 页面列表 */
+        .page-item {
+            display: flex;
+            align-items: center;
+            padding: 14px 0;
+            border-bottom: 0.5px solid #e5e5ea;
+        }
+        .page-item:last-child {
+            border-bottom: none;
+        }
+        .page-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .page-info .title {
+            font-size: 16px;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .page-info .meta {
+            font-size: 12px;
+            color: #8e8e93;
+            margin-top: 2px;
+        }
+        .page-actions {
+            display: flex;
+            gap: 8px;
+            margin-left: 12px;
+            flex-shrink: 0;
+        }
+        .page-actions .btn-open {
+            background: #007aff;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 6px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .page-actions .btn-open:active {
+            opacity: 0.7;
+        }
+        .empty-state {
+            text-align: center;
+            color: #8e8e93;
+            padding: 40px 0;
+            font-size: 15px;
+        }
+
+        /* ===== 详情页样式 ===== */
+        #detail-preview-wrap {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        #detail-preview-wrap iframe {
+            flex: 1;
+            width: 100%;
+            border: none;
+            border-radius: 12px;
+            background: #fff;
+        }
+        #detail-edit-wrap {
+            display: none;
+            height: 100%;
+            flex-direction: column;
+            padding-bottom: 16px;
+        }
+        #detail-edit-wrap textarea {
+            flex: 1;
+            width: 100%;
+            padding: 14px;
+            font-size: 14px;
+            font-family: "SF Mono", Menlo, Consolas, monospace;
+            border: 1px solid #d1d1d6;
+            border-radius: 12px;
+            background: #fafafc;
+            outline: none;
+            resize: none;
+            -webkit-appearance: none;
+        }
+        #detail-edit-wrap textarea:focus {
+            border-color: #007aff;
+            background: #fff;
+        }
+        #detail-edit-wrap .btn-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 12px;
+        }
+        #detail-edit-wrap .btn-group .btn-primary {
+            flex: 1;
+            margin-top: 0;
+        }
+        #detail-edit-wrap .btn-group .btn-secondary {
+            flex: 1;
+            padding: 12px;
+            font-size: 17px;
+            font-weight: 600;
+            background: #e5e5ea;
+            color: #1c1c1e;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            text-align: center;
+            -webkit-tap-highlight-color: transparent;
+        }
+        #detail-edit-wrap .btn-group .btn-secondary:active {
+            background: #d1d1d6;
+        }
+
+        /* 详情页底部切换按钮（浮动） */
+        #detail-toggle-btn {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 28px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            color: #fff;
+            border: none;
+            border-radius: 30px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            z-index: 50;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            -webkit-tap-highlight-color: transparent;
+            letter-spacing: 0.3px;
+        }
+        #detail-toggle-btn:active {
+            transform: translateX(-50%) scale(0.96);
+        }
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <header id="navbar">
+        <button class="back-btn" id="navBack">← 返回</button>
+        <span class="title" id="navTitle">HTML 游乐场</span>
+        <button class="action-btn" id="navAction" style="visibility:hidden;">编辑</button>
+    </header>
+
+    <!-- 主应用 -->
+    <div id="app">
+        <!-- ====== 首页 ====== -->
+        <div id="view-home" class="view active">
+            <div class="section-title">✨ 新建页面</div>
+            <div class="card">
+                <label>页面标题</label>
+                <input type="text" id="newTitle" placeholder="输入标题..." maxlength="40">
+                <label>HTML 内容</label>
+                <textarea id="newContent" placeholder="粘贴或输入你的 HTML 代码..."></textarea>
+                <button class="btn-primary" id="saveNewBtn">💾 保存</button>
+            </div>
+
+            <div class="section-title">📂 我的页面</div>
+            <div id="pageList">
+                <div class="empty-state">还没有页面，创建一个吧 ✨</div>
+            </div>
+        </div>
+
+        <!-- ====== 详情页 ====== -->
+        <div id="view-detail" class="view">
+            <div id="detail-preview-wrap">
+                <iframe id="detailIframe" sandbox="allow-scripts allow-modals allow-forms allow-same-origin"></iframe>
+            </div>
+            <div id="detail-edit-wrap">
+                <textarea id="detailEditor" spellcheck="false"></textarea>
+                <div class="btn-group">
+                    <button class="btn-secondary" id="detailCancelEdit">取消</button>
+                    <button class="btn-primary" id="detailSaveEdit">💾 保存并预览</button>
+                </div>
+            </div>
+            <button id="detail-toggle-btn">✏️ 编辑代码</button>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        // 数据层
+        // ============================================================
+        const STORAGE_KEY = 'html_playground_pages';
+        let currentPageId = null;
+        let isEditMode = false;
+
+        function getPages() {
+            try {
+                const data = localStorage.getItem(STORAGE_KEY);
+                return data ? JSON.parse(data) : [];
+            } catch { return []; }
+        }
+
+        function setPages(pages) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(pages));
+        }
+
+        function generateId() {
+            return Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 7);
+        }
+
+        function formatTime(ts) {
+            const d = new Date(ts);
+            return d.toLocaleString('zh-CN', { hour12: false });
+        }
+
+        // ============================================================
+        // 导航
+        // ============================================================
+        function showView(name) {
+            document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+            document.getElementById('view-' + name).classList.add('active');
+            const backBtn = document.getElementById('navBack');
+            const navTitle = document.getElementById('navTitle');
+            const navAction = document.getElementById('navAction');
+            if (name === 'home') {
+                backBtn.style.display = 'none';
+                navTitle.textContent = 'HTML 游乐场';
+                navAction.style.visibility = 'hidden';
+                document.getElementById('detail-toggle-btn').classList.add('hidden');
+                // 释放 iframe 资源
+                const iframe = document.getElementById('detailIframe');
+                if (iframe.src) { URL.revokeObjectURL(iframe.src);
+                    iframe.src = ''; }
+            } else {
+                backBtn.style.display = 'block';
+                navTitle.textContent = document.getElementById('detail-title-store')?.textContent || '页面';
+                navAction.style.visibility = 'hidden';
+                document.getElementById('detail-toggle-btn').classList.remove('hidden');
+            }
+            // 滚动到顶部
+            document.getElementById('view-' + name).scrollTop = 0;
+        }
+
+        function goHome() {
+            currentPageId = null;
+            isEditMode = false;
+            showView('home');
+            renderHome();
+        }
+
+        function openPage(id) {
+            currentPageId = id;
+            isEditMode = false;
+            showView('detail');
+            renderDetail(id);
+        }
+
+        // ============================================================
+        // 首页渲染
+        // ============================================================
+        function renderHome() {
+            const pages = getPages();
+            const container = document.getElementById('pageList');
+            if (pages.length === 0) {
+                container.innerHTML = '<div class="empty-state">还没有页面，创建一个吧 ✨</div>';
+                return;
+            }
+            // 按更新时间倒序
+            pages.sort((a, b) => b.updatedAt - a.updatedAt);
+            let html = '';
+            pages.forEach(p => {
+                const title = p.title || '未命名';
+                const meta = `更新于 ${formatTime(p.updatedAt)}`;
+                html += `
+                    <div class="page-item">
+                        <div class="page-info">
+                            <div class="title">${escapeHtml(title)}</div>
+                            <div class="meta">${meta}</div>
+                        </div>
+                        <div class="page-actions">
+                            <button class="btn-open" data-id="${p.id}">打开</button>
+                            <button class="btn-danger" data-id="${p.id}">删除</button>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+
+            // 事件绑定
+            container.querySelectorAll('.btn-open').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    openPage(btn.dataset.id);
+                });
+            });
+            container.querySelectorAll('.btn-danger').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (confirm('确定要删除这个页面吗？')) {
+                        deletePage(btn.dataset.id);
+                    }
+                });
+            });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ============================================================
+        // 增删改
+        // ============================================================
+        function saveNewPage() {
+            const title = document.getElementById('newTitle').value.trim() || '未命名';
+            const content = document.getElementById('newContent').value;
+            if (!content.trim()) {
+                alert('请输入 HTML 内容！');
+                return;
+            }
+            const pages = getPages();
+            pages.push({
+                id: generateId(),
+                title: title,
+                content: content,
+                updatedAt: Date.now()
+            });
+            setPages(pages);
+            document.getElementById('newTitle').value = '';
+            document.getElementById('newContent').value = '';
+            renderHome();
+            // 自动打开新页面
+            const last = pages[pages.length - 1];
+            openPage(last.id);
+        }
+
+        function deletePage(id) {
+            let pages = getPages();
+            pages = pages.filter(p => p.id !== id);
+            setPages(pages);
+            if (currentPageId === id) {
+                goHome();
+            } else {
+                renderHome();
+            }
+        }
+
+        function updatePageContent(id, content) {
+            const pages = getPages();
+            const p = pages.find(p => p.id === id);
+            if (p) {
+                p.content = content;
+                p.updatedAt = Date.now();
+                setPages(pages);
+                return true;
+            }
+            return false;
+        }
+
+        function updatePageTitle(id, title) {
+            const pages = getPages();
+            const p = pages.find(p => p.id === id);
+            if (p) {
+                p.title = title || '未命名';
+                p.updatedAt = Date.now();
+                setPages(pages);
+                return true;
+            }
+            return false;
+        }
+
+        // ============================================================
+        // 详情页渲染
+        // ============================================================
+        function renderDetail(id) {
+            const pages = getPages();
+            const page = pages.find(p => p.id === id);
+            if (!page) {
+                goHome();
+                return;
+            }
+
+            // 更新导航标题
+            const navTitle = document.getElementById('navTitle');
+            navTitle.textContent = page.title || '未命名';
+            // 隐藏存储标题供导航使用
+            let titleStore = document.getElementById('detail-title-store');
+            if (!titleStore) {
+                titleStore = document.createElement('span');
+                titleStore.id = 'detail-title-store';
+                titleStore.style.display = 'none';
+                document.body.appendChild(titleStore);
+            }
+            titleStore.textContent = page.title || '未命名';
+
+            // 渲染 iframe
+            const iframe = document.getElementById('detailIframe');
+            // 释放旧 blob
+            if (iframe._blobUrl) {
+                URL.revokeObjectURL(iframe._blobUrl);
+            }
+            try {
+                const blob = new Blob([page.content], { type: 'text/html; charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                iframe._blobUrl = url;
+                iframe.src = url;
+            } catch (e) {
+                iframe.srcdoc = '<h1>渲染错误</h1><p>内容格式可能有问题</p>';
+            }
+
+            // 填充编辑器
+            const editor = document.getElementById('detailEditor');
+            editor.value = page.content;
+
+            // 重置编辑模式
+            isEditMode = false;
+            document.getElementById('detail-preview-wrap').style.display = 'flex';
+            document.getElementById('detail-edit-wrap').style.display = 'none';
+            document.getElementById('detail-toggle-btn').textContent = '✏️ 编辑代码';
+        }
+
+        // ============================================================
+        // 详情页切换编辑/预览
+        // ============================================================
+        function toggleEditMode() {
+            const previewWrap = document.getElementById('detail-preview-wrap');
+            const editWrap = document.getElementById('detail-edit-wrap');
+            const toggleBtn = document.getElementById('detail-toggle-btn');
+
+            if (isEditMode) {
+                // 切换到预览
+                const editor = document.getElementById('detailEditor');
+                const content = editor.value;
+                if (currentPageId) {
+                    updatePageContent(currentPageId, content);
+                    // 刷新 iframe
+                    const iframe = document.getElementById('detailIframe');
+                    if (iframe._blobUrl) URL.revokeObjectURL(iframe._blobUrl);
+                    const blob = new Blob([content], { type: 'text/html; charset=utf-8' });
+                    const url = URL.createObjectURL(blob);
+                    iframe._blobUrl = url;
+                    iframe.src = url;
+                    // 更新导航标题（可能变了）
+                    const pages = getPages();
+                    const p = pages.find(p => p.id === currentPageId);
+                    if (p) {
+                        document.getElementById('navTitle').textContent = p.title || '未命名';
+                        document.getElementById('detail-title-store').textContent = p.title || '未命名';
+                    }
+                }
+                previewWrap.style.display = 'flex';
+                editWrap.style.display = 'none';
+                toggleBtn.textContent = '✏️ 编辑代码';
+                isEditMode = false;
+            } else {
+                // 切换到编辑
+                previewWrap.style.display = 'none';
+                editWrap.style.display = 'flex';
+                toggleBtn.textContent = '👁️ 预览';
+                isEditMode = true;
+                // 聚焦编辑器
+                setTimeout(() => {
+                    document.getElementById('detailEditor').focus();
+                }, 300);
+            }
+        }
+
+        // ============================================================
+        // 事件绑定
+        // ============================================================
+        document.addEventListener('DOMContentLoaded', function() {
+            // 首页 - 保存
+            document.getElementById('saveNewBtn').addEventListener('click', saveNewPage);
+
+            // 首页 - 回车快捷保存（标题输入框回车跳到内容，内容框 Ctrl+Enter 保存）
+            document.getElementById('newTitle').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    document.getElementById('newContent').focus();
+                }
+            });
+            document.getElementById('newContent').addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    saveNewPage();
+                }
+            });
+
+            // 导航 - 返回
+            document.getElementById('navBack').addEventListener('click', goHome);
+
+            // 详情 - 切换编辑/预览
+            document.getElementById('detail-toggle-btn').addEventListener('click', toggleEditMode);
+
+            // 详情 - 取消编辑
+            document.getElementById('detailCancelEdit').addEventListener('click', () => {
+                if (currentPageId) {
+                    const pages = getPages();
+                    const p = pages.find(p => p.id === currentPageId);
+                    if (p) {
+                        document.getElementById('detailEditor').value = p.content;
+                    }
+                }
+                // 切换回预览
+                if (isEditMode) toggleEditMode();
+            });
+
+            // 详情 - 保存编辑
+            document.getElementById('detailSaveEdit').addEventListener('click', () => {
+                if (currentPageId) {
+                    const editor = document.getElementById('detailEditor');
+                    const content = editor.value;
+                    updatePageContent(currentPageId, content);
+                    // 刷新预览
+                    const iframe = document.getElementById('detailIframe');
+                    if (iframe._blobUrl) URL.revokeObjectURL(iframe._blobUrl);
+                    const blob = new Blob([content], { type: 'text/html; charset=utf-8' });
+                    const url = URL.createObjectURL(blob);
+                    iframe._blobUrl = url;
+                    iframe.src = url;
+                    // 更新标题显示
+                    const pages = getPages();
+                    const p = pages.find(p => p.id === currentPageId);
+                    if (p) {
+                        document.getElementById('navTitle').textContent = p.title || '未命名';
+                        document.getElementById('detail-title-store').textContent = p.title || '未命名';
+                    }
+                    // 切换到预览
+                    if (isEditMode) toggleEditMode();
+                    // 刷新首页列表（更新时间和标题）
+                    renderHome();
+                }
+            });
+
+            // 详情 - 键盘 Ctrl+S 保存
+            document.getElementById('detailEditor').addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                    e.preventDefault();
+                    document.getElementById('detailSaveEdit').click();
+                }
+            });
+
+            // 初始渲染
+            renderHome();
+
+            // 注册 Service Worker (PWA)
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('SW 注册成功', reg))
+                    .catch(err => console.warn('SW 注册失败', err));
+            }
+        });
+    </script>
+</body>
+</html>
