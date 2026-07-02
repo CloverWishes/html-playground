@@ -229,6 +229,20 @@
         .btn-edit:active {
             opacity: 0.7;
         }
+        .btn-rename {
+            background: #ff9500;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 6px 14px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .btn-rename:active {
+            opacity: 0.7;
+        }
         .empty-state {
             text-align: center;
             color: #8e8e93;
@@ -309,7 +323,7 @@
     <header id="navbar">
         <button class="back-btn" id="navBack">← 返回</button>
         <span class="title" id="navTitle">HTML 游乐场</span>
-        <button class="action-btn" id="navAction" style="visibility:hidden;">编辑</button>
+        <button class="action-btn" id="navAction" style="display:none;">编辑</button>
     </header>
 
     <div id="app">
@@ -326,6 +340,17 @@
             <div class="section-title">📂 我的页面</div>
             <div id="pageList">
                 <div class="empty-state">还没有页面，创建一个吧 ✨</div>
+            </div>
+
+            <div class="section-title">💾 数据导入 / 导出</div>
+            <div class="card">
+                <p style="font-size:14px;color:#3a3a3c;margin-bottom:12px;">导出为 .txt 文件，可随时导入还原</p>
+                <div style="display:flex;gap:12px;">
+                    <button class="btn-primary" id="exportBtn" style="flex:1;margin-top:0;">📤 导出数据</button>
+                    <button class="btn-primary" id="importBtn" style="flex:1;margin-top:0;background:#34c759;">📥 导入数据</button>
+                </div>
+                <input type="file" id="importFileInput" accept=".txt,application/json" style="display:none">
+                <div id="importExportStatus" style="margin-top:10px;font-size:13px;color:#8e8e93;"></div>
             </div>
         </div>
 
@@ -436,7 +461,7 @@
                 navbar.style.display = 'flex';
                 backBtn.style.display = 'none';
                 navTitle.textContent = 'HTML 游乐场';
-                navAction.style.visibility = 'hidden';
+                navAction.style.display = 'none';
                 document.body.style.paddingTop = '44px';
                 const iframe = document.getElementById('detailIframe');
                 if (iframe.src) { URL.revokeObjectURL(iframe.src); iframe.src = ''; }
@@ -444,7 +469,7 @@
                 navbar.style.display = 'flex';
                 backBtn.style.display = 'block';
                 navTitle.textContent = document.getElementById('detail-title-store')?.textContent || '页面';
-                navAction.style.visibility = 'hidden';
+                navAction.style.display = 'none';
                 document.body.style.paddingTop = '44px';
             }
             document.getElementById('view-' + name).scrollTop = 0;
@@ -488,6 +513,7 @@
                         <div class="page-actions">
                             <button class="btn-open" data-id="${p.id}">打开</button>
                             <button class="btn-edit" data-id="${p.id}">编辑</button>
+                            <button class="btn-rename" data-id="${p.id}">重命名</button>
                             <button class="btn-danger" data-id="${p.id}">删除</button>
                         </div>
                     </div>
@@ -505,6 +531,18 @@
                 btn.addEventListener('click', async (e) => {
                     e.stopPropagation();
                     await openPage(btn.dataset.id, true);
+                });
+            });
+            container.querySelectorAll('.btn-rename').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    const pages = await getPages();
+                    const p = pages.find(pg => pg.id === btn.dataset.id);
+                    if (!p) return;
+                    const newTitle = prompt('请输入新名称：', p.title || '');
+                    if (newTitle === null) return;
+                    await updatePageTitle(btn.dataset.id, newTitle.trim() || '未命名');
+                    await renderHome();
                 });
             });
             container.querySelectorAll('.btn-danger').forEach(btn => {
@@ -581,6 +619,55 @@
                 return true;
             }
             return false;
+        }
+
+        // ============================================================
+        // 文件导入 / 导出
+        // ============================================================
+        function setImportExportStatus(msg, isError) {
+            const el = document.getElementById('importExportStatus');
+            el.textContent = msg;
+            el.style.color = isError ? '#ff3b30' : '#34c759';
+        }
+
+        async function exportData() {
+            try {
+                const pages = await getPages();
+                if (pages.length === 0) {
+                    setImportExportStatus('没有可导出的页面', true);
+                    return;
+                }
+                const json = JSON.stringify(pages, null, 2);
+                const blob = new Blob([json], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'html-playground-backup.txt';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                setImportExportStatus('✅ 导出成功！共 ' + pages.length + ' 个页面');
+            } catch (e) {
+                setImportExportStatus('❌ 导出失败：' + e.message, true);
+            }
+        }
+
+        async function importData(file) {
+            try {
+                const text = await file.text();
+                const pages = JSON.parse(text);
+                if (!Array.isArray(pages)) {
+                    setImportExportStatus('❌ 文件格式不正确', true);
+                    return;
+                }
+                if (!confirm('将用文件中的数据覆盖本地 ' + pages.length + ' 个页面，确定吗？')) return;
+                await setPages(pages);
+                setImportExportStatus('✅ 导入成功！共 ' + pages.length + ' 个页面');
+                await renderHome();
+            } catch (e) {
+                setImportExportStatus('❌ 导入失败：' + e.message, true);
+            }
         }
 
         // ============================================================
@@ -700,6 +787,19 @@
             });
 
             await renderHome();
+
+            document.getElementById('exportBtn').addEventListener('click', async () => {
+                await exportData();
+            });
+            document.getElementById('importBtn').addEventListener('click', () => {
+                document.getElementById('importFileInput').click();
+            });
+            document.getElementById('importFileInput').addEventListener('change', async (e) => {
+                if (e.target.files.length > 0) {
+                    await importData(e.target.files[0]);
+                    e.target.value = '';
+                }
+            });
 
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.register('/html-playground/sw.js')
