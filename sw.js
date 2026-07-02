@@ -1,4 +1,4 @@
-const CACHE_NAME = 'html-playground-v2';
+const CACHE_NAME = 'html-playground-v3';
 const urlsToCache = [
     '/html-playground/',
     '/html-playground/index.html',
